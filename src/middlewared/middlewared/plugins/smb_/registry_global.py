@@ -86,6 +86,10 @@ class SMBService(Service):
         """
         try:
             global_conf = await self.middleware.call('sharing.smb.reg_showshare', 'global')
+        except CallError as e:
+            if e.errno == errno.ENXIO:
+                self.logger.warning("Unable to query globals due to unhealthy ctdb state")
+            return {'raw': {}, 'idmap': {}, 'ds': {}, 'smb': {}}
         except Exception:
             self.logger.debug("Failed to retrieve global share config from registry")
             return {'raw': {}, 'idmap': {}, 'ds': {}, 'smb': {}}

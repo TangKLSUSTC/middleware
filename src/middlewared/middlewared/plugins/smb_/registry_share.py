@@ -1,7 +1,7 @@
 from middlewared.service import private, Service, filterable
 from middlewared.service_exception import CallError
 from middlewared.utils import run, filter_list
-from middlewared.plugins.smb import SMBCmd, SMBSharePreset
+from middlewared.plugins.smb import SMBCmd, SMBHAMODE, SMBSharePreset
 from middlewared.utils import osc
 
 import errno
@@ -42,6 +42,14 @@ class SharingSMBService(Service):
             'delparm'
         ]:
             raise CallError(f'Action [{action}] is not permitted.', errno.EPERM)
+
+        ha_mode = SMBHAMODE[(await self.middleware.call('smb.get_smb_ha_mode'))]
+        if ha_mode != SMBHAMODE.CLUSTERED:
+            return
+
+        ctdb_healthy = await self.middleware.call('ctdb.general.healthy')
+        if not ctdb_healthy:
+            raise CallError("Registry calls not permitted when ctdb unhealthy.", errno.ENXIO)
 
         share = kwargs.get('share')
         args = kwargs.get('args', [])
@@ -271,7 +279,11 @@ class SharingSMBService(Service):
         API for viewing samba's current running configuration, which
         is of particular importance with clustered registry shares.
         """
-        reg_shares = await self.reg_listshares()
+        try:
+            reg_shares = await self.reg_listshares()
+        except CallError:
+            return []
+
         rv = []
         for idx, name in enumerate(reg_shares):
             reg_conf = await self.reg_showshare(name)
