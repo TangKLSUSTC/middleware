@@ -44,12 +44,12 @@ class SharingSMBService(Service):
             raise CallError(f'Action [{action}] is not permitted.', errno.EPERM)
 
         ha_mode = SMBHAMODE[(await self.middleware.call('smb.get_smb_ha_mode'))]
-        if ha_mode != SMBHAMODE.CLUSTERED:
-            return
-
-        ctdb_healthy = await self.middleware.call('ctdb.general.healthy')
-        if not ctdb_healthy:
-            raise CallError("Registry calls not permitted when ctdb unhealthy.", errno.ENXIO)
+        if ha_mode == SMBHAMODE.CLUSTERED:
+            ctdb_healthy = await self.middleware.call('ctdb.general.healthy')
+            if not ctdb_healthy:
+                raise CallError(
+                    "Registry calls not permitted when ctdb unhealthy.", errno.ENXIO
+                )
 
         share = kwargs.get('share')
         args = kwargs.get('args', [])
