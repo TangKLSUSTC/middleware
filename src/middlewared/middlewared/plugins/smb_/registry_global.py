@@ -6,6 +6,8 @@ from middlewared.plugins.activedirectory import DEFAULT_AD_PARAMETERS
 from middlewared.plugins.ldap import DEFAULT_LDAP_PARAMETERS
 from middlewared.utils import osc
 
+import errno
+
 DEFAULT_GLOBAL_PARAMETERS = {
     "dns proxy": "No",
     "max log size": "51200",
